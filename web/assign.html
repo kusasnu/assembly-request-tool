@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>배분 화면</title>
+  <script src="lib/pdf.min.js"></script>
+  <script src="common.js"></script>
+  <script src="split.js"></script>
+  <script src="engine.js"></script>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --bg: #f4f7fb;
+      --primary: #2456a6;
+      --primary-strong: #1c4380;
+      --accent: #d4653f;
+      --ok: #20794d;
+      --warn: #9a5b00;
+      --soft: #eef4ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      line-height: 1.45;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      font-weight: 800;
+      margin-right: auto;
+      letter-spacing: 0;
+    }
+
+    .nav a, .nav button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 9px 13px;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav a.active, .nav a:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .nav .primary-link {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .nav .primary-link.active, .nav .primary-link:hover {
+      background: var(--primary-strong);
+      border-color: var(--primary-strong);
+      color: #fff;
+    }
+
+    .nav button[aria-disabled="true"] {
+      color: var(--muted);
+      cursor: default;
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 26px 20px 56px;
+    }
+
+    h1, h2 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: clamp(26px, 3vw, 38px);
+      line-height: 1.18;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .server-warning {
+      display: none;
+      margin-top: 14px;
+      border: 1px solid #f3bf6b;
+      background: #fff8e7;
+      color: #7a4a00;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-weight: 800;
+    }
+
+    .server-warning a {
+      color: var(--primary-strong);
+      font-weight: 900;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .quick-actions {
+      position: sticky;
+      top: 68px;
+      z-index: 8;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 10px;
+      padding: 12px;
+      margin-top: 18px;
+      background: rgba(244, 247, 251, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 12px 28px rgba(31, 45, 72, 0.08);
+      margin-top: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.15fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    input[type="file"], select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 10px;
+      min-height: 40px;
+      font: inherit;
+    }
+
+    select[multiple] {
+      min-height: 92px;
+      padding: 7px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .button:hover {
+      background: var(--primary-strong);
+      border-color: var(--primary-strong);
+      transform: translateY(-1px);
+    }
+
+    .button.secondary {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .button.warn {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .status-card {
+      border: 1px solid var(--line);
+      background: #fbfcff;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .status-card b {
+      display: block;
+      color: var(--primary-strong);
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-top: 14px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 840px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      vertical-align: top;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafd;
+      color: #344054;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr:hover td {
+      background: #fbfdff;
+    }
+
+    .empty-row {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 800;
+      background: #fbfcff;
+    }
+
+    .empty-row strong {
+      display: block;
+      color: var(--ink);
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .assign-table th:last-child,
+    .assign-table td:last-child {
+      position: sticky;
+      right: 0;
+      background: #fff;
+      border-left: 1px solid var(--line);
+      box-shadow: -8px 0 12px rgba(31, 45, 72, 0.06);
+      min-width: 118px;
+    }
+
+    .assign-table th:last-child {
+      background: #f8fafd;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--soft);
+      color: var(--primary-strong);
+      margin: 0 4px 4px 0;
+      white-space: nowrap;
+    }
+
+    .pill.ok {
+      color: var(--ok);
+      background: #e9f7ef;
+    }
+
+    .pill.warn {
+      color: var(--warn);
+      background: #fff2d8;
+    }
+
+    .request-text {
+      min-width: 300px;
+      max-width: 520px;
+      white-space: normal;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .message {
+      margin-top: 12px;
+      min-height: 22px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .message.error { color: #b42318; }
+    .message.ok { color: var(--ok); }
+
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 420ms ease, transform 420ms ease;
+    }
+
+    [data-reveal].show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 820px) {
+      .grid, .status-strip, .quick-actions { grid-template-columns: 1fr; }
+      .brand { width: 100%; }
+      .quick-actions { position: static; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      [data-reveal] { opacity: 1; transform: none; transition: none; }
+      .button { transition: none; }
+      .button:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav" aria-label="화면 이동">
+      <div class="brand">국회 요구자료 도구</div>
+      <a href="index.html">시작 화면</a>
+      <a class="active primary-link" href="assign.html">배분</a>
+      <button type="button" aria-disabled="true">현업 회신 S6</button>
+      <button type="button" aria-disabled="true">취합 S8</button>
+    </nav>
+  </header>
+
+  <main>
+    <section data-reveal>
+      <h1>배분 화면</h1>
+      <p>요구서 PDF를 문항 단위로 접수하고, 보강된 배분기준표와 조직도 기준으로 후보 과를 확인합니다.</p>
+      <div class="server-warning" id="serverWarning">
+        지금 파일을 직접 열었습니다. CSV와 배분기준표를 읽으려면 <a href="http://localhost:8000/assign.html">http://localhost:8000/assign.html</a> 주소로 열어 주세요.
+      </div>
+      <div class="status-strip" aria-label="저장 현황">
+        <div class="status-card"><b id="totalCount">0</b><span>전체 문항</span></div>
+        <div class="status-card"><b id="receivedCount">0</b><span>접수</span></div>
+        <div class="status-card"><b id="confirmedCount">0</b><span>배분확정</span></div>
+        <div class="status-card"><b id="departmentCount">0</b><span>조직도 과</span></div>
+      </div>
+      <div class="quick-actions" aria-label="주요 작업">
+        <button class="button" id="topLoadSampleButton" type="button">기준 78문항 불러오기</button>
+        <button class="button" id="topRegisterButton" type="button" disabled>접수 등록</button>
+        <a class="button secondary" href="#assignSection">배분 목록으로 이동</a>
+        <a class="button secondary" href="index.html">시작 화면</a>
+      </div>
+    </section>
+
+    <section class="panel grid" data-reveal>
+      <div>
+        <h2>① 접수</h2>
+        <p>PDF 여러 개를 선택하거나 이미 만든 문항목록 CSV를 불러올 수 있습니다.</p>
+        <div class="toolbar">
+          <div style="flex:1 1 260px">
+            <label for="pdfFiles">요구서 PDF</label>
+            <input id="pdfFiles" type="file" accept="application/pdf,.pdf" multiple>
+          </div>
+          <button class="button" id="readPdfButton" type="button">PDF 문항 읽기</button>
+        </div>
+        <div class="toolbar">
+          <div style="flex:1 1 260px">
+            <label for="csvFile">문항목록 CSV</label>
+            <input id="csvFile" type="file" accept=".csv,text/csv">
+          </div>
+          <button class="button secondary" id="readCsvButton" type="button">CSV 불러오기</button>
+          <button class="button secondary" id="loadSampleButton" type="button">기준 78문항 불러오기</button>
+        </div>
+        <div class="message" id="intakeMessage"></div>
+      </div>
+
+      <div>
+        <h2>접수 확인</h2>
+        <p>파일명에 들어 있는 문항 수와 뽑은 문항 수, 마지막 번호, 번호 연속 여부를 대조합니다.</p>
+        <div class="table-wrap">
+          <table aria-label="파일별 문항 확인">
+            <thead>
+              <tr>
+                <th>파일명</th>
+                <th>파일명의 문항 수</th>
+                <th>뽑은 문항 수</th>
+                <th>마지막 번호</th>
+                <th>번호 연속</th>
+                <th>일치</th>
+              </tr>
+            </thead>
+            <tbody id="checkBody"></tbody>
+          </table>
+        </div>
+        <div class="toolbar">
+          <button class="button" id="registerButton" type="button" disabled>접수 등록</button>
+          <button class="button secondary" id="clearButton" type="button">브라우저 기록 비우기</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-reveal>
+      <h2>접수 문항 미리보기</h2>
+      <div class="table-wrap">
+        <table aria-label="접수 문항 미리보기">
+          <thead>
+            <tr>
+              <th>파일명</th>
+              <th>의원·문항</th>
+              <th>요구내용</th>
+              <th>세부항목</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="assignSection" data-reveal>
+      <h2>② 배분</h2>
+      <p>주관 과는 후보 1순위가 기본값입니다. 협조 과는 여러 개를 고를 수 있고, 확정 시 규칙 또는 수정으로 기록됩니다.</p>
+      <div class="table-wrap">
+        <table class="assign-table" aria-label="배분 목록">
+          <thead>
+            <tr>
+              <th>상태</th>
+              <th>의원·문항</th>
+              <th>요구내용</th>
+              <th>후보 3순위</th>
+              <th>주관 과</th>
+              <th>확정</th>
+            </tr>
+          </thead>
+          <tbody id="assignBody"></tbody>
+        </table>
+      </div>
+      <div class="message" id="assignMessage"></div>
+    </section>
+  </main>
+
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
+    }
+
+    const state = {
+      pendingItems: [],
+      cases: AppCommon.loadCases(),
+      departments: [],
+      engineReady: false,
+    };
+
+    const elements = {
+      pdfFiles: document.getElementById("pdfFiles"),
+      csvFile: document.getElementById("csvFile"),
+      readPdfButton: document.getElementById("readPdfButton"),
+      readCsvButton: document.getElementById("readCsvButton"),
+      loadSampleButton: document.getElementById("loadSampleButton"),
+      topLoadSampleButton: document.getElementById("topLoadSampleButton"),
+      registerButton: document.getElementById("registerButton"),
+      topRegisterButton: document.getElementById("topRegisterButton"),
+      clearButton: document.getElementById("clearButton"),
+      serverWarning: document.getElementById("serverWarning"),
+      intakeMessage: document.getElementById("intakeMessage"),
+      assignMessage: document.getElementById("assignMessage"),
+      checkBody: document.getElementById("checkBody"),
+      previewBody: document.getElementById("previewBody"),
+      assignBody: document.getElementById("assignBody"),
+      totalCount: document.getElementById("totalCount"),
+      receivedCount: document.getElementById("receivedCount"),
+      confirmedCount: document.getElementById("confirmedCount"),
+      departmentCount: document.getElementById("departmentCount"),
+    };
+
+    function setMessage(target, message, type = "") {
+      target.textContent = message;
+      target.className = `message ${type}`.trim();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderCheck(items) {
+      const rows = RequestSplitter.checkByFile(items);
+      elements.checkBody.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.파일명)}</td>
+          <td>${row.파일명의문항수 ?? "확인불가"}</td>
+          <td>${row.뽑은문항수}</td>
+          <td>${row.마지막번호}</td>
+          <td><span class="pill ${row.번호연속 ? "ok" : "warn"}">${row.번호연속 ? "O" : "X"}</span></td>
+          <td><span class="pill ${row.일치 ? "ok" : "warn"}">${row.일치 ? "O" : "X"}</span></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderPreview() {
+      const registerDisabled = state.pendingItems.length === 0 || !state.engineReady;
+      elements.registerButton.disabled = registerDisabled;
+      elements.topRegisterButton.disabled = registerDisabled;
+      elements.previewBody.innerHTML = state.pendingItems.slice(0, 120).map((item) => `
+        <tr>
+          <td>${escapeHtml(item.파일명)}</td>
+          <td>${escapeHtml(item.의원)} ${escapeHtml(item.문항번호)}번</td>
+          <td class="request-text">${escapeHtml(item.요구내용)}</td>
+          <td>${escapeHtml(item.세부항목)}</td>
+          <td>${escapeHtml(item.비고)}</td>
+        </tr>
+      `).join("");
+      renderCheck(state.pendingItems);
+    }
+
+    function optionHtml(selectedValue = "") {
+      const empty = `<option value="">확인필요</option>`;
+      return empty + state.departments.map((name) => {
+        const selected = name === selectedValue ? " selected" : "";
+        return `<option value="${escapeHtml(name)}"${selected}>${escapeHtml(name)}</option>`;
+      }).join("");
+    }
+
+    function multiOptionHtml(selectedValues = []) {
+      const selectedSet = new Set(selectedValues);
+      return state.departments.map((name) => {
+        const selected = selectedSet.has(name) ? " selected" : "";
+        return `<option value="${escapeHtml(name)}"${selected}>${escapeHtml(name)}</option>`;
+      }).join("");
+    }
+
+    function candidateHtml(candidates) {
+      if (!candidates || candidates.length === 0) {
+        return '<span class="pill warn">확인필요</span>';
+      }
+      return candidates.map((candidate, index) => `
+        <div>
+          <span class="pill">${index + 1}순위 ${escapeHtml(candidate.과)} ${candidate.점수}</span>
+          <div class="small">${escapeHtml((candidate.근거키워드 || []).join(", "))}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderCounts() {
+      const counts = AppCommon.countByStatus(state.cases);
+      elements.totalCount.textContent = counts.전체;
+      elements.receivedCount.textContent = counts.접수 || 0;
+      elements.confirmedCount.textContent = counts.배분확정 || 0;
+      elements.departmentCount.textContent = state.departments.length;
+    }
+
+    function renderAssign() {
+      renderCounts();
+      if (state.cases.length === 0) {
+        elements.assignBody.innerHTML = `
+          <tr>
+            <td class="empty-row" colspan="6">
+              <strong>아직 배분할 문항이 없습니다.</strong>
+              위쪽에서 PDF를 읽거나 기준 78문항을 불러온 뒤 [접수 등록]을 누르면 여기 각 문항마다 [배분확정] 버튼이 보입니다.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      elements.assignBody.innerHTML = state.cases.map((item) => `
+        <tr data-id="${escapeHtml(item.id)}">
+          <td><span class="pill ${item.상태 === "배분확정" ? "ok" : ""}">${escapeHtml(item.상태)}</span>
+            <div class="small">${escapeHtml(item.확정방법 || "")}</div>
+          </td>
+          <td>${escapeHtml(item.의원)} ${escapeHtml(item.문항번호)}번
+            <div class="small">${escapeHtml(item.위원회)} · ${escapeHtml(item.제출기한)}</div>
+          </td>
+          <td class="request-text">${escapeHtml(item.요구내용)}
+            ${item.세부항목 ? `<div class="small">세부: ${escapeHtml(item.세부항목)}</div>` : ""}
+            ${item.비고 ? `<div class="small">비고: ${escapeHtml(item.비고)}</div>` : ""}
+          </td>
+          <td>${candidateHtml(item.후보)}</td>
+          <td>
+            <label for="lead-${escapeHtml(item.id)}">주관 과</label>
+            <select id="lead-${escapeHtml(item.id)}" data-role="lead">${optionHtml(item.주관과)}</select>
+            <label for="coop-${escapeHtml(item.id)}" style="margin-top:8px">협조 과</label>
+            <select id="coop-${escapeHtml(item.id)}" data-role="coop" multiple>${multiOptionHtml(item.협조과)}</select>
+          </td>
+          <td>
+            <button class="button" type="button" data-role="confirm">배분확정</button>
+            <div class="small">${escapeHtml(item.확정일시 || "")}</div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function rowsToCases(rows) {
+      return rows.map((row) => AppCommon.toCase(row, requestClassifyEngine.classify));
+    }
+
+    function setPending(items, sourceName) {
+      state.pendingItems = items;
+      renderPreview();
+      const checks = RequestSplitter.checkByFile(items);
+      const total = items.length;
+      const allOk = checks.every((row) => row.일치);
+      setMessage(elements.intakeMessage, `${sourceName}: ${total}문항을 읽었습니다. 파일별 일치 ${allOk ? "O" : "X"}`, allOk ? "ok" : "error");
+    }
+
+    async function readPdfFiles() {
+      const files = Array.from(elements.pdfFiles.files || []);
+      if (files.length === 0) {
+        setMessage(elements.intakeMessage, "PDF 파일을 먼저 선택해 주세요.", "error");
+        return;
+      }
+      setMessage(elements.intakeMessage, "PDF 글자를 읽는 중입니다.");
+      const allItems = [];
+      for (const file of files) {
+        const text = await RequestSplitter.extractPdfText(file);
+        allItems.push(...RequestSplitter.parseText(text, file.name));
+      }
+      setPending(allItems, `PDF ${files.length}건`);
+    }
+
+    async function readCsvFile() {
+      const file = elements.csvFile.files?.[0];
+      if (!file) {
+        setMessage(elements.intakeMessage, "CSV 파일을 먼저 선택해 주세요.", "error");
+        return;
+      }
+      const rows = AppCommon.csvToObjects(await AppCommon.readFileText(file));
+      setPending(rows, file.name);
+    }
+
+    async function loadSampleCsv() {
+      const rows = await AppCommon.loadCsv("data/문항목록.csv");
+      setPending(rows, "기준 문항목록.csv");
+    }
+
+    function registerPending() {
+      if (!state.engineReady) {
+        setMessage(elements.intakeMessage, "배분 자료를 아직 읽는 중입니다.", "error");
+        return;
+      }
+      const newCases = rowsToCases(state.pendingItems);
+      state.cases = AppCommon.mergeCases(state.cases, newCases);
+      AppCommon.saveCases(state.cases);
+      renderAssign();
+      setMessage(elements.intakeMessage, `${newCases.length}문항을 브라우저 기록에 등록했습니다.`, "ok");
+    }
+
+    function clearStorage() {
+      AppCommon.clearCases();
+      state.cases = [];
+      renderAssign();
+      setMessage(elements.assignMessage, "브라우저 기록을 비웠습니다.", "ok");
+    }
+
+    function confirmCase(row) {
+      const id = row.dataset.id;
+      const item = state.cases.find((caseItem) => caseItem.id === id);
+      if (!item) {
+        return;
+      }
+      const lead = row.querySelector('[data-role="lead"]').value;
+      const coop = Array.from(row.querySelector('[data-role="coop"]').selectedOptions).map((option) => option.value);
+      const firstCandidate = item.후보?.[0]?.과 || "";
+      item.주관과 = lead;
+      item.협조과 = coop.filter((name) => name && name !== lead);
+      item.상태 = "배분확정";
+      item.확정방법 = lead && lead === firstCandidate ? "규칙" : "수정";
+      item.확정일시 = new Date().toLocaleString("ko-KR");
+      AppCommon.saveCases(state.cases);
+      renderAssign();
+      setMessage(elements.assignMessage, `${item.의원} ${item.문항번호}번을 배분확정으로 저장했습니다.`, "ok");
+    }
+
+    elements.readPdfButton.addEventListener("click", () => readPdfFiles().catch((error) => setMessage(elements.intakeMessage, error.message, "error")));
+    elements.readCsvButton.addEventListener("click", () => readCsvFile().catch((error) => setMessage(elements.intakeMessage, error.message, "error")));
+    elements.loadSampleButton.addEventListener("click", () => loadSampleCsv().catch((error) => setMessage(elements.intakeMessage, error.message, "error")));
+    elements.topLoadSampleButton.addEventListener("click", () => loadSampleCsv().catch((error) => setMessage(elements.intakeMessage, error.message, "error")));
+    elements.registerButton.addEventListener("click", registerPending);
+    elements.topRegisterButton.addEventListener("click", registerPending);
+    elements.clearButton.addEventListener("click", clearStorage);
+    elements.assignBody.addEventListener("click", (event) => {
+      if (event.target.matches('[data-role="confirm"]')) {
+        confirmCase(event.target.closest("tr"));
+      }
+    });
+
+    requestClassifyEngine.ready
+      .then(() => {
+        state.engineReady = true;
+        state.departments = requestClassifyEngine.getDepartments();
+        renderPreview();
+        renderAssign();
+        setMessage(elements.assignMessage, "배분기준표와 조직도를 읽었습니다.", "ok");
+      })
+      .catch((error) => {
+        setMessage(elements.assignMessage, error.message, "error");
+      });
+
+    renderPreview();
+    renderAssign();
+    if (location.protocol === "file:") {
+      elements.serverWarning.style.display = "block";
+      setMessage(elements.intakeMessage, "파일을 직접 열면 CSV를 읽지 못합니다. 위의 localhost 주소로 열어 주세요.", "error");
+    }
+    AppCommon.showReveal();
+  </script>
+</body>
+</html>

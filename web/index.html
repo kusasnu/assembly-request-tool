@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>국회 요구자료 도구</title>
+  <script src="common.js"></script>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --bg: #f4f7fb;
+      --primary: #2456a6;
+      --primary-strong: #1c4380;
+      --accent: #d4653f;
+      --ok: #20794d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      font-weight: 800;
+      margin-right: auto;
+      letter-spacing: 0;
+    }
+
+    .nav a, .nav button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 9px 13px;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav a.active, .nav a:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .nav button {
+      color: var(--muted);
+      cursor: default;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 20px 56px;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 12px 28px rgba(31, 45, 72, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .button.secondary {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcff;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 26px;
+      color: var(--primary-strong);
+      line-height: 1.1;
+    }
+
+    .step-list {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .step-list li {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 420ms ease, transform 420ms ease;
+    }
+
+    [data-reveal].show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 760px) {
+      .intro { grid-template-columns: 1fr; }
+      .brand { width: 100%; }
+      .stats { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      [data-reveal] { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav" aria-label="화면 이동">
+      <div class="brand">국회 요구자료 도구</div>
+      <a class="active" href="index.html">시작 화면</a>
+      <a href="assign.html">배분</a>
+      <button type="button" aria-disabled="true">현업 회신 S6</button>
+      <button type="button" aria-disabled="true">취합 S8</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div class="section" data-reveal>
+        <h1>요구서를 문항으로 접수하고, 소관 과 후보를 바로 확인합니다.</h1>
+        <p>총괄 담당자가 PDF 요구서를 올리면 문항을 나누고, 배분기준표와 조직도를 기준으로 후보 과를 추천합니다. 확정 기록은 현재 브라우저에 저장됩니다.</p>
+        <div class="actions">
+          <a class="button" href="assign.html">배분 화면 열기</a>
+          <a class="button secondary" href="data/문항목록.csv">기준 문항목록 보기</a>
+        </div>
+      </div>
+
+      <aside class="section" data-reveal>
+        <h2>현재 기준</h2>
+        <p>조직도 26개 과와 보강된 배분기준표를 읽어 후보를 냅니다. 조직도에 없는 과는 화면에 표시하지 않습니다.</p>
+        <div class="stats" id="stats">
+          <div class="stat"><b id="caseCount">0</b><span>저장된 문항</span></div>
+          <div class="stat"><b id="confirmedCount">0</b><span>배분확정</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" style="margin-top:24px" data-reveal>
+      <h2>작업 순서</h2>
+      <ul class="step-list">
+        <li>1. 배분 화면에서 요구서 PDF 3건을 선택하거나 문항목록 CSV를 불러옵니다.</li>
+        <li>2. 접수 표에서 파일별 문항 수, 마지막 번호, 번호 연속 여부를 확인합니다.</li>
+        <li>3. 접수 등록을 누른 뒤 후보 3순위를 보고 주관 과와 협조 과를 고릅니다.</li>
+        <li>4. 확정 버튼을 누르면 상태가 배분확정으로 바뀌고 확정방법이 기록됩니다.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const cases = AppCommon.loadCases();
+    const counts = AppCommon.countByStatus(cases);
+    document.getElementById("caseCount").textContent = counts.전체;
+    document.getElementById("confirmedCount").textContent = counts.배분확정 || 0;
+    AppCommon.showReveal();
+  </script>
+</body>
+</html>
